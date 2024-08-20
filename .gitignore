@@ -1,0 +1,6 @@
+accounts/__pycache__/
+tests/__pycache__/
+charity/__pycache__/
+charities/__pycache__/
+about_us/__pycache__/
+db.sqlite3
