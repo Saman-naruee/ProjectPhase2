@@ -1,15 +1,29 @@
 from rest_framework import serializers
-
+from django.contrib.auth.hashers import *
 from .models import Benefactor
-from .models import Charity, Task
+from .models import Charity, Task, User
 
 
 class BenefactorSerializer(serializers.ModelSerializer):
-    pass
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    class Meta:
+        model = Benefactor
+        fields = ['experience', 'free_time_per_week', 'user']
 
+    def create(self, validated_data):
+        return Benefactor.objects.create(**validated_data)
 
 class CharitySerializer(serializers.ModelSerializer):
-    pass
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    class Meta:
+        model = Charity
+        fields = ['name', 'reg_number', 'user']
+
+    def create(self, validated_data):
+        # Ensure the charity is created correctly
+        return Charity.objects.create(**validated_data)      
+
+
 
 
 class TaskSerializer(serializers.ModelSerializer):
