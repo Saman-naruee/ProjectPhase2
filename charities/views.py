@@ -1,3 +1,4 @@
+from typing import Any
 from rest_framework import status, generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
@@ -88,12 +89,46 @@ class Tasks(generics.ListCreateAPIView):
 
 
 class TaskRequest(APIView):
-    pass
+    permission_classes = [IsBenefactor]
+    def get(self, request, task_id):
+        task = get_object_or_404(Task, id=task_id)
+        if task.state != "PENDING":
+            return Response(data={'detail': 'This task is not pending.'}, status=status.HTTP_404_NOT_FOUND)
+        elif task.state == 'PENDING':
+            task.state = "WAITING"
+            task.benefactor = request.user.benefactor
+            task.save()
+            return Response(data={'detail': 'Request sent.'}, status=status.HTTP_200_OK)
+        
+    
+
 
 
 class TaskResponse(APIView):
-    pass
+    permission_classes = [IsAuthenticated, IsCharityOwner]
+
+    def post(self, request, task_id):
+        task = get_object_or_404(Task, id=task_id)
+        if task.charity.owner != request.user.charity:
+            return Response({"detail": "You don't have permission to respond to this task."}, status=status.HTTP_403_FORBIDDEN)
+
+        task.status = "accepted"
+        task.save()
+
+        serializer = TaskSerializer(task)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class DoneTask(APIView):
-    pass
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, task_id):
+        task = get_object_or_404(Task, id=task_id)
+        if request.user == task.benefactor.user or request.user == task.charity.owner:
+            task.status = "completed"
+            task.save()
+
+            serializer = TaskSerializer(task)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"detail": "You don't have permission to mark this task as done."}, status=status.HTTP_403_FORBIDDEN)
