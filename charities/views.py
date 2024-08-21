@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.permissions import *
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from .models import *
 from accounts.permissions import IsCharityOwner, IsBenefactor
 from charities.models import Task
 from charities.serializers import (
@@ -90,22 +90,17 @@ class Tasks(generics.ListCreateAPIView):
 
 class TaskRequest(APIView):
     permission_classes = [IsBenefactor]
-    print('################# after permissions ##########')
     def get(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
-        print('################ got task ##############')
         if task.state != "P":
-            print('################ task is not pending ##############')
             return Response(
                 data={'detail': 'This task is not pending.'},
                 status=status.HTTP_404_NOT_FOUND
             )
         task.state = "W"
-        print('################ change task status to Waiting ##############')
-        task.benefactor = request.user.is_benefactor
-        print('################ task assigned ##############')
+        u = Benefactor.objects.get(user=request.user)
+        task.assign_to_benefactor(u)
         task.save()
-        print('################ task saved and returned 200 http response ##############')
         return Response(data={'detail': 'Request sent.'},status=status.HTTP_200_OK)
     
     
