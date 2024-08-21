@@ -89,55 +89,33 @@ class Tasks(generics.ListCreateAPIView):
 
 
 class TaskRequest(APIView):
-    print('################ in func ##############')
     permission_classes = [IsBenefactor]
-    print('#################        after permissions ##########')
+    print('################# after permissions ##########')
     def get(self, request, task_id):
-        print('################ before get_or_404 ##############')
         task = get_object_or_404(Task, id=task_id)
         print('################ got task ##############')
         if task.state != "P":
             print('################ task is not pending ##############')
-            return Response(data={'detail': 'This task is not pending.'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            print('################ task is pending ##############')
-            task.state = "W"
-            print('################ change task status to Waiting ##############')
-            task.benefactor = request.user.is_benefactor
-            print('################ task assigned ##############')
-            task.save()
-            print('################ task saved ##############')
-            return Response(data={'detail': 'Request sent.'},status=status.HTTP_200_OK)
-        
+            return Response(
+                data={'detail': 'This task is not pending.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        task.state = "W"
+        print('################ change task status to Waiting ##############')
+        task.benefactor = request.user.is_benefactor
+        print('################ task assigned ##############')
+        task.save()
+        print('################ task saved and returned 200 http response ##############')
+        return Response(data={'detail': 'Request sent.'},status=status.HTTP_200_OK)
+    
     
 
 
 
 class TaskResponse(APIView):
-    permission_classes = [IsAuthenticated, IsCharityOwner]
-
-    def post(self, request, task_id):
-        task = get_object_or_404(Task, id=task_id)
-        if task.charity.owner != request.user.charity:
-            return Response({"detail": "You don't have permission to respond to this task."}, status=status.HTTP_403_FORBIDDEN)
-
-        task.status = "accepted"
-        task.save()
-
-        serializer = TaskSerializer(task)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    pass
 
 
 
 class DoneTask(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, task_id):
-        task = get_object_or_404(Task, id=task_id)
-        if request.user == task.benefactor.user or request.user == task.charity.owner:
-            task.status = "completed"
-            task.save()
-
-            serializer = TaskSerializer(task)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response({"detail": "You don't have permission to mark this task as done."}, status=status.HTTP_403_FORBIDDEN)
+    pass

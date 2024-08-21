@@ -20,7 +20,6 @@ class CharitySerializer(serializers.ModelSerializer):
         fields = ['name', 'reg_number', 'user']
 
     def create(self, validated_data):
-        # Ensure the charity is created correctly
         return Charity.objects.create(**validated_data)      
 
 
