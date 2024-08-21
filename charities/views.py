@@ -107,10 +107,70 @@ class TaskRequest(APIView):
 
 
 
-class TaskResponse(APIView):
-    pass
+# class TaskResponse(APIView):
+#     permission_classes = [IsAuthenticated, IsCharityOwner] # 
 
+#     def post(self, request, task_id):
+#         task = get_object_or_404(Task, id=task_id)
+#         if request.data['response'] != ('R' or 'A'):
+#             return Response(
+#                 data={'detail': 'Required field ("A" for accepted / "R" for rejected)'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#                 )
+#         if task.state != 'W':
+#             return Response(data={'detail': 'This task is not waiting.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+#         if task.state == 'A':
+#             task.response_to_benefactor_request('A')
+#             return Response(data={'detail': 'Response sent.'}, status=status.HTTP_200_OK)
+#         elif task.state == 'R':
+#             task.state = 'P'
+#             task.response_to_benefactor_request(None)
+#             task.save()
+#             return Response(data={'detail': 'Response sent.'}, status=status.HTTP_200_OK)
+#         return Response(data={'detail': 'Required field ("A" for accepted / "R" for rejected)'}, status=status.HTTP_400_BAD_REQUEST)
+
+class TaskResponse(APIView):
+    permission_classes = [IsAuthenticated, IsCharityOwner]
+
+    def post(self, request, *args, **kwargs):
+        task_id = kwargs['task_id']
+        task = get_object_or_404(Task, id=task_id)
+
+        response = request.data['response']
+        if response == ('A' or 'R'):
+            if task.state != Task.TaskStatus.WAITING:
+              return Response(data={'detail': 'This task is not waiting.'}, status=status.HTTP_404_NOT_FOUND)
+            task.response_to_benefactor_request(response)
+            return Response(data={'detail': 'Response sent.'}, status=status.HTTP_200_OK)
+        else:
+            return Response(data={'detail': 'Required field ("A" for accepted / "R" for rejected)'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+# class DoneTask(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, task_id):
+#         task = get_object_or_404(Task, id=task_id)
+#         if request.user == task.benefactor.user or request.user == task.charity.owner:
+#             task.status = "completed"
+#             task.save()
+
+#             serializer = TaskSerializer(task)
+#             return Response(serializer.data, status=status.HTTP_200_OK)
+#         return Response({"detail": "You don't have permission to mark this task as done."}, status=status.HTTP_403_FORBIDDEN)
 
 
 class DoneTask(APIView):
-    pass
+    permission_classes = [IsAuthenticated, IsCharityOwner]
+
+    def post(self, request, *args, **kwargs):
+        task_id = kwargs['task_id']
+        task = get_object_or_404(Task, id=task_id)
+        if task.state != Task.TaskStatus.ASSIGNED:
+            return Response(data={'detail': 'Task is not assigned yet.'}, status=status.HTTP_404_NOT_FOUND)
+        task.done()
+        return Response(data={'detail': 'Task has been done successfully.'}, status=status.HTTP_200_OK)
